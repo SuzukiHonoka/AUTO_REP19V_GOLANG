@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/tidwall/gjson"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -36,15 +37,25 @@ var (
 	yoya_base_g string = "https://jkjc.yoya.com/user_block/do?action=tzjc/h5/gzbdreport&start=getPreviousReport&user_id=uu_id"
 	yoya_report_p string = "https://jkjc.yoya.com/user_block/do?action=tzjc/h5/gzbdreport&start=saveReport"
 	//login
-	user_im string = "AUTO_REP19V"
-	user_bl string
-	user_id string
-	user_pa string
+	userIm string = "AUTO_REP19V"
+	userBl string
+	userId string
+	userPa string
+	userUid string
+	//info
+	userRealId   string = "000000000000000000"
+	userRealAddr string = "Paradise"
+	userTel      string = "911"
+	userBackTime string = "GUESS?"
 	//report
-	rtype int = 1
-	postData = map[string]string{"type":string(rtype)}
+	postData = map[string]string{"type":"1","user_id":"","id_type":"1","identity_code":"real_id","address":"user_real_addr","telephone":"user_tel","back_time":"user_back_time","go_where":"None","contact_type":"1","es":"1","health_status":"2","is_diagnosis":"","is_fever":"0","temperature":"36","is_cough":"0","isolate":"0","isolate_type":"","isolate_time":"","remark":"AUTO_REP_19V_GOLANG"}
 	//cookies
 	cookie []*http.Cookie
+	//
+	req1Json string
+	data_g string
+	data_u string
+	base_d string
 )
 
 func pe(e error)  {
@@ -63,33 +74,34 @@ func getInput()  {
 		case 0:
 			fmt.Println(input_bl)
 			input,_ := reader.ReadString('\n')
-			user_bl = input
+			userBl = input
 		case 1:
 			fmt.Println(input_id)
 			input,_ := reader.ReadString('\n')
-			user_id = input
+			userId = input
 		case 2:
 			fmt.Println(input_pa)
 			input,_ := reader.ReadString('\n')
-			user_pa = input
+			userPa = input
 		}
 	}
 }
 
 func applies(){
 	fmt.Println("Applying..")
-	yoya_login_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_login_g,ubl,user_bl),uid,user_id),upa,user_pa),uim,user_im),"\n","")
-	yoya_base_g = strings.ReplaceAll(strings.ReplaceAll(yoya_base_g,ubl,user_bl),"\n","")
+	yoya_login_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_login_g,ubl, userBl),uid, userId),upa, userPa),uim, userIm),"\n","")
+	yoya_base_g = strings.ReplaceAll(strings.ReplaceAll(yoya_base_g,ubl, userBl),"\n","")
+	yoya_report_p = strings.ReplaceAll(yoya_report_p,ubl,userBl)
 
 }
 
 func newRequest(method string,durl string,body io.Reader) *http.Request {
 	req,_ := http.NewRequest(method,durl,body)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
-	req.Header.Set("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
-	req.Header.Set("Connection","keep-alive")
-	req.Header.Set("Accept-Language" ,"zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
+	req.Header.Add("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+	req.Header.Add("Connection","keep-alive")
+	req.Header.Add("Accept-Language" ,"zh-CN,zh;q=0.9,en;q=0.8")
 	return req
 }
 
@@ -140,7 +152,7 @@ func urlRequest(mode int,durl string) (string,int,error) {
 			pe(err)
 		} else {
 			req := newRequest(post,durl,bytes.NewBuffer(fP))
-			loadCookies(req)
+			//loadCookies(req)
 			resp,code,err := getResp(client,req)
 			if err != nil {
 				pe(err)
@@ -152,13 +164,59 @@ func urlRequest(mode int,durl string) (string,int,error) {
 	return "",0,nil
 }
 
+func tryLogin()  {
+	res,code,err := urlRequest(0,yoya_login_g)
+	if err != nil || code !=200 || gjson.Get(res,"code").Int() != 200 {
+		fmt.Println(res)
+		pe(err)
+	}
+	req1Json = res
+	fmt.Println("Login Success!")
+}
+
+func updateInfo()  {
+	data_g = gjson.Get(req1Json,"data").String()
+	data_u = gjson.Get(data_g,"user").String()
+	userUid = gjson.Get(data_u,"user_id").String()
+}
+
+func secHello()  {
+	fmt.Println("Last_Login_Time:",gjson.Get(data_u,"last_login_time"),"\nName:",gjson.Get(req1Json,"data.user.user_name"),"\nBlock:",gjson.Get(data_g,"siteInfo.site_code"))
+}
+
+func prePare()  {
+	yoya_base_g = strings.ReplaceAll(yoya_base_g,uuid,userUid)
+	res,code,err := urlRequest(0,yoya_base_g)
+	if err != nil || code != 200 {
+		pe(err)
+	}
+	base_d = gjson.Get(res,"data").String()
+	userRealId = gjson.Get(base_d,"identity_code").String()
+	userRealAddr = gjson.Get(base_d,"address").String()
+	userTel = gjson.Get(base_d,"telephone").String()
+	userBackTime = gjson.Get(base_d,"back_time").String()
+	postData["user_id"] = userUid
+	postData["identity_code"] = userRealId
+	postData["address"] = userRealAddr
+	postData["telephone"] = userTel
+	postData["back_time"] = userBackTime
+}
+
+func postRep()  {
+	res,code,err := urlRequest(1,yoya_report_p)
+	if err != nil || code != 200 {
+		pe(err)
+	}
+	fmt.Println(res)
+}
+
 func main()  {
 	welcome()
 	getInput()
 	applies()
-	res,_,err := urlRequest(0,yoya_login_g)
-	if err != nil {
-		pe(err)
-	}
-	fmt.Println(res)
+	tryLogin()
+	updateInfo()
+	secHello()
+	prePare()
+	postRep()
 }
