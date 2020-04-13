@@ -19,8 +19,8 @@ const (
 	input_id string = "Please Enter the User ID."
 	input_pa string = "Please Enter the User Password."
 	//
-	get string = "get"
-	post string = "post"
+	get string = "GET"
+	post string = "POST"
 	//
 	ubl string = "user_block"
 	uid string = "user_id"
@@ -85,6 +85,11 @@ func applies(){
 
 func newRequest(method string,durl string,body io.Reader) *http.Request {
 	req,_ := http.NewRequest(method,durl,body)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
+	req.Header.Set("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+	req.Header.Set("Connection","keep-alive")
+	req.Header.Set("Accept-Language" ,"zh-CN,zh;q=0.9,en;q=0.8")
 	return req
 }
 
@@ -100,18 +105,22 @@ func updateCookies(resp *http.Response)  {
 	cookie = resp.Cookies()
 }
 
-func getResp(client http.Client,req *http.Request) (*http.Response,error) {
+func getResp(client http.Client,req *http.Request) (string,int,error) {
 	resp,err := client.Do(req)
 	if err != nil {
-		return nil,err
+		return "",0,err
 	}
 	updateCookies(resp)
 	defer resp.Body.Close()
-	return resp,nil
+	resBytes,err2 := ioutil.ReadAll(resp.Body)
+	if err2 != nil {
+		pe(err2)
+	}
+	return string(resBytes),resp.StatusCode,nil
 
 }
 
-func urlRequest(mode int,durl string) *http.Response {
+func urlRequest(mode int,durl string) (string,int,error) {
 	var client http.Client
 	switch mode {
 	// mode 0=get 1=post data=None
@@ -119,11 +128,11 @@ func urlRequest(mode int,durl string) *http.Response {
 		fmt.Println("Get:",durl)
 		req := newRequest(get,durl,nil)
 		loadCookies(req)
-		resp,err := getResp(client,req)
+		resp,code,err := getResp(client,req)
 		if err != nil {
 			pe(err)
 		} else {
-			return resp
+			return resp,code,nil
 		}
 	case 1:
 		fP,err := json.Marshal(postData)
@@ -132,21 +141,24 @@ func urlRequest(mode int,durl string) *http.Response {
 		} else {
 			req := newRequest(post,durl,bytes.NewBuffer(fP))
 			loadCookies(req)
-			resp,err := getResp(client,req)
+			resp,code,err := getResp(client,req)
 			if err != nil {
-				return resp
-			} else {
 				pe(err)
+			} else {
+				return resp,code,nil
 			}
 		}
 	}
-	return nil
+	return "",0,nil
 }
 
 func main()  {
 	welcome()
 	getInput()
 	applies()
-	fr,_ := ioutil.ReadAll(urlRequest(0,yoya_login_g).Body)
-	fmt.Println(string(fr))
+	res,_,err := urlRequest(0,yoya_login_g)
+	if err != nil {
+		pe(err)
+	}
+	fmt.Println(res)
 }
