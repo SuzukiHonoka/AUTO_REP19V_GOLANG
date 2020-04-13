@@ -78,8 +78,8 @@ func getInput()  {
 
 func applies(){
 	fmt.Println("Applying..")
-	yoya_login_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_login_g,ubl,user_bl),uid,user_id),upa,user_pa),uim,user_im)
-	yoya_base_g = strings.ReplaceAll(yoya_base_g,ubl,user_bl)
+	yoya_login_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_login_g,ubl,user_bl),uid,user_id),upa,user_pa),uim,user_im),"\n","")
+	yoya_base_g = strings.ReplaceAll(strings.ReplaceAll(yoya_base_g,ubl,user_bl),"\n","")
 
 }
 
@@ -100,18 +100,19 @@ func updateCookies(resp *http.Response)  {
 	cookie = resp.Cookies()
 }
 
-func getResp(client *http.Client,req *http.Request) (*http.Response,error) {
+func getResp(client http.Client,req *http.Request) (*http.Response,error) {
 	resp,err := client.Do(req)
 	if err != nil {
-		updateCookies(resp)
-		defer resp.Body.Close()
-		return resp,nil
+		return nil,err
 	}
-	return nil,err
+	updateCookies(resp)
+	defer resp.Body.Close()
+	return resp,nil
+
 }
 
 func urlRequest(mode int,durl string) *http.Response {
-	var client = new(http.Client)
+	var client http.Client
 	switch mode {
 	// mode 0=get 1=post data=None
 	case 0:
@@ -120,13 +121,15 @@ func urlRequest(mode int,durl string) *http.Response {
 		loadCookies(req)
 		resp,err := getResp(client,req)
 		if err != nil {
-			return resp
-		} else {
 			pe(err)
+		} else {
+			return resp
 		}
 	case 1:
 		fP,err := json.Marshal(postData)
 		if err != nil {
+			pe(err)
+		} else {
 			req := newRequest(post,durl,bytes.NewBuffer(fP))
 			loadCookies(req)
 			resp,err := getResp(client,req)
@@ -135,8 +138,6 @@ func urlRequest(mode int,durl string) *http.Response {
 			} else {
 				pe(err)
 			}
-		} else {
-			pe(err)
 		}
 	}
 	return nil
