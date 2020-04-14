@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
 	"os"
 	"strings"
 )
@@ -50,13 +51,15 @@ var (
 	//report
 	postData = map[string]string{"type":"1","user_id":"","id_type":"1","identity_code":"real_id","address":"user_real_addr","telephone":"user_tel","back_time":"user_back_time","go_where":"None","contact_type":"1","es":"1","health_status":"2","is_diagnosis":"","is_fever":"0","temperature":"36","is_cough":"0","isolate":"0","isolate_type":"","isolate_time":"","remark":"AUTO_REP_19V_GOLANG"}
 	//cookies
-	cookie []*http.Cookie
+	cookies []*http.Cookie
+	cookieJar, _ = cookiejar.New(nil)
 	//
 	req1Json string
 	data_g string
 	data_u string
 	base_d string
 )
+
 
 func pe(e error)  {
 	fmt.Println(e)
@@ -91,12 +94,15 @@ func applies(){
 	fmt.Println("Applying..")
 	yoya_login_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_login_g,ubl, userBl),uid, userId),upa, userPa),uim, userIm),"\n","")
 	yoya_base_g = strings.ReplaceAll(strings.ReplaceAll(yoya_base_g,ubl, userBl),"\n","")
-	yoya_report_p = strings.ReplaceAll(yoya_report_p,ubl,userBl)
+	yoya_report_p = strings.ReplaceAll(strings.ReplaceAll(yoya_report_p,ubl,userBl),"\n","")
 
 }
 
 func newRequest(method string,durl string,body io.Reader) *http.Request {
-	req,_ := http.NewRequest(method,durl,body)
+	req,err := http.NewRequest(method,durl,body)
+	if err != nil {
+		pe(err)
+	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
 	req.Header.Add("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
@@ -106,18 +112,19 @@ func newRequest(method string,durl string,body io.Reader) *http.Request {
 }
 
 func loadCookies(req *http.Request){
-	if cookie != nil {
-		for i := range cookie {
-			req.AddCookie(cookie[i])
+	if cookies != nil {
+		fmt.Println("Cookies:",cookies)
+		for i := range cookies {
+			req.AddCookie(cookies[i])
 		}
 	}
 }
 
 func updateCookies(resp *http.Response)  {
-	cookie = resp.Cookies()
+	cookies = resp.Cookies()
 }
 
-func getResp(client http.Client,req *http.Request) (string,int,error) {
+func getResp(client *http.Client,req *http.Request) (string,int,error) {
 	resp,err := client.Do(req)
 	if err != nil {
 		return "",0,err
@@ -132,14 +139,16 @@ func getResp(client http.Client,req *http.Request) (string,int,error) {
 
 }
 
-func urlRequest(mode int,durl string) (string,int,error) {
-	var client http.Client
+func urlRequest(mode int,durl string,data io.Reader) (string,int,error) {
+	client := &http.Client {
+		Jar: cookieJar,
+	}
 	switch mode {
 	// mode 0=get 1=post data=None
 	case 0:
 		fmt.Println("Get:",durl)
 		req := newRequest(get,durl,nil)
-		loadCookies(req)
+		//loadCookies(req)
 		resp,code,err := getResp(client,req)
 		if err != nil {
 			pe(err)
@@ -147,25 +156,22 @@ func urlRequest(mode int,durl string) (string,int,error) {
 			return resp,code,nil
 		}
 	case 1:
-		fP,err := json.Marshal(postData)
+		fmt.Println("Post:",durl)
+		req := newRequest(post,durl,data)
+		//loadCookies(req)
+		resp,code,err := getResp(client,req)
 		if err != nil {
 			pe(err)
 		} else {
-			req := newRequest(post,durl,bytes.NewBuffer(fP))
-			//loadCookies(req)
-			resp,code,err := getResp(client,req)
-			if err != nil {
-				pe(err)
-			} else {
 				return resp,code,nil
 			}
-		}
+
 	}
 	return "",0,nil
 }
 
 func tryLogin()  {
-	res,code,err := urlRequest(0,yoya_login_g)
+	res,code,err := urlRequest(0,yoya_login_g,nil)
 	if err != nil || code !=200 || gjson.Get(res,"code").Int() != 200 {
 		fmt.Println(res)
 		pe(err)
@@ -186,7 +192,7 @@ func secHello()  {
 
 func prePare()  {
 	yoya_base_g = strings.ReplaceAll(yoya_base_g,uuid,userUid)
-	res,code,err := urlRequest(0,yoya_base_g)
+	res,code,err := urlRequest(0,yoya_base_g,nil)
 	if err != nil || code != 200 {
 		pe(err)
 	}
@@ -203,7 +209,21 @@ func prePare()  {
 }
 
 func postRep()  {
-	res,code,err := urlRequest(1,yoya_report_p)
+	// ordered by sequence
+
+	//keys := make([]string,len(postData))
+	//
+	//for k,_ := range postData {
+	//	keys = append(keys,k)
+	//}
+	//sort.Strings(keys)
+	fmt.Println(postData)
+
+	fp,er := json.Marshal(postData)
+	if er != nil {
+		pe(er)
+	}
+	res,code,err := urlRequest(1,yoya_report_p,bytes.NewReader(fp) )
 	if err != nil || code != 200 {
 		pe(err)
 	}
