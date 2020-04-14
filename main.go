@@ -87,6 +87,8 @@ func arg()  {
 		userBl = args[1]
 		userId = args[2]
 		userPa = args[3]
+	} else {
+		getInput()
 	}
 }
 
@@ -267,7 +269,6 @@ func postRep()  {
 func main()  {
 	arg()
 	welcome()
-	getInput()
 	applies()
 	tryLogin()
 	updateInfo()
