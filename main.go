@@ -2,14 +2,13 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -49,7 +48,7 @@ var (
 	userTel      string = "911"
 	userBackTime string = "GUESS?"
 	//report
-	postData = map[string]string{"type":"1","user_id":"","id_type":"1","identity_code":"real_id","address":"user_real_addr","telephone":"user_tel","back_time":"user_back_time","go_where":"None","contact_type":"1","es":"1","health_status":"2","is_diagnosis":"","is_fever":"0","temperature":"36","is_cough":"0","isolate":"0","isolate_type":"","isolate_time":"","remark":"AUTO_REP_19V_GOLANG"}
+	ffp FP
 	//cookies
 	cookies []*http.Cookie
 	cookieJar, _ = cookiejar.New(nil)
@@ -60,6 +59,36 @@ var (
 	base_d string
 )
 
+type FP struct {
+	Type         string `json:"type"`
+	UserID       string `json:"user_id"`
+	IdType       string `json:"id_type"`
+	IdentityCode string	`json:"identity_code"`
+	Address      string	`json:"address"`
+	Telephone    string	`json:"telephone"`
+	BackTime     string	`json:"back_time"`
+	GoWhere      string `json:"go_where"`
+	ContactType  string `json:"contact_type"`
+	Es           string `json:"es"`
+	HealthStatus string `json:"health_status"`
+	IsDiagnosis  string `json:"is_diagnosis"`
+	IsFever      string `json:"is_fever"`
+	Temperature  string `json:"temperature"`
+	IsCough      string `json:"is_cough"`
+	Isolate      string `json:"isolate"`
+	IsolateType  string `json:"isolate_type"`
+	IsolateTime  string `json:"isolate_time"`
+	Remark       string `json:"remark"`
+}
+
+func arg()  {
+	args := os.Args
+	if len(args) == 4 {
+		userBl = args[1]
+		userId = args[2]
+		userPa = args[3]
+	}
+}
 
 func pe(e error)  {
 	fmt.Println(e)
@@ -104,10 +133,10 @@ func newRequest(method string,durl string,body io.Reader) *http.Request {
 		pe(err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
-	req.Header.Add("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
-	req.Header.Add("Connection","keep-alive")
-	req.Header.Add("Accept-Language" ,"zh-CN,zh;q=0.9,en;q=0.8")
+	//req.Header.Add("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
+	//req.Header.Add("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+	//req.Header.Add("Connection","keep-alive")
+	//req.Header.Add("Accept-Language" ,"zh-CN,zh;q=0.9,en;q=0.8")
 	return req
 }
 
@@ -201,29 +230,34 @@ func prePare()  {
 	userRealAddr = gjson.Get(base_d,"address").String()
 	userTel = gjson.Get(base_d,"telephone").String()
 	userBackTime = gjson.Get(base_d,"back_time").String()
-	postData["user_id"] = userUid
-	postData["identity_code"] = userRealId
-	postData["address"] = userRealAddr
-	postData["telephone"] = userTel
-	postData["back_time"] = userBackTime
+	//set FP
+	ffp	= FP{"1",userUid,"1",userRealId,userRealAddr,userTel,userBackTime,"None","1","1","2","","0","36","0","0","","","AUTO_REP_19V_GOLANG"}
 }
 
 func postRep()  {
-	// ordered by sequence
-
-	//keys := make([]string,len(postData))
-	//
-	//for k,_ := range postData {
-	//	keys = append(keys,k)
-	//}
-	//sort.Strings(keys)
-	fmt.Println(postData)
-
-	fp,er := json.Marshal(postData)
-	if er != nil {
-		pe(er)
-	}
-	res,code,err := urlRequest(1,yoya_report_p,bytes.NewReader(fp) )
+	pf := url.Values{}
+	pf.Add("type",ffp.Type)
+	pf.Add("user_id",ffp.UserID)
+	pf.Add("id_type",ffp.IdType)
+	pf.Add("identity_code",ffp.IdentityCode)
+	pf.Add("address",ffp.Address)
+	pf.Add("telephone",ffp.Telephone)
+	pf.Add("back_time",ffp.BackTime)
+	pf.Add("go_where",ffp.GoWhere)
+	pf.Add("contact_type",ffp.ContactType)
+	pf.Add("es",ffp.Es)
+	pf.Add("health_status",ffp.HealthStatus)
+	pf.Add("is_diagnosis",ffp.IsDiagnosis)
+	pf.Add("is_fever",ffp.IsFever)
+	pf.Add("temperature",ffp.Temperature)
+	pf.Add("is_cough",ffp.IsCough)
+	pf.Add("isolate",ffp.Isolate)
+	pf.Add("isolate_type",ffp.IsolateType)
+	pf.Add("isolate_time",ffp.IsolateTime)
+	pf.Add("remark",ffp.Remark)
+	pfd := strings.NewReader(pf.Encode())
+	// Post
+	res,code,err := urlRequest(1,yoya_report_p,pfd)
 	if err != nil || code != 200 {
 		pe(err)
 	}
@@ -231,6 +265,7 @@ func postRep()  {
 }
 
 func main()  {
+	arg()
 	welcome()
 	getInput()
 	applies()
