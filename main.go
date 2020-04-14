@@ -123,9 +123,9 @@ func getInput()  {
 
 func applies(){
 	fmt.Println("Applying..")
-	yoya_login_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_login_g,ubl, userBl),uid, userId),upa, userPa),uim, userIm),"\n","")
-	yoya_base_g = strings.ReplaceAll(strings.ReplaceAll(yoya_base_g,ubl, userBl),"\n","")
-	yoya_report_p = strings.ReplaceAll(strings.ReplaceAll(yoya_report_p,ubl,userBl),"\n","")
+	yoya_login_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_login_g,ubl, userBl),uid, userId),upa, userPa),uim, userIm),"\n",""),"\r","")
+	yoya_base_g = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_base_g,ubl, userBl),"\n",""),"\r","")
+	yoya_report_p = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(yoya_report_p,ubl,userBl),"\n",""),"\r","")
 
 }
 
@@ -267,8 +267,8 @@ func postRep()  {
 }
 
 func main()  {
-	arg()
 	welcome()
+	arg()
 	applies()
 	tryLogin()
 	updateInfo()
