@@ -95,8 +95,11 @@ func arg()  {
 		userId = args[2]
 		userPa = args[3]
 		reportT = args[4]
-		if args[5] == "1" {
+		t := args[5]
+		if t == "1" {
 			randE = randt()
+} else {
+	randE = t
 }
 	} else {
 		getInput()
