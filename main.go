@@ -11,6 +11,9 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
+	"strconv"
+	"math/rand"
 )
 
 const (
@@ -29,6 +32,8 @@ const (
 	uim string = "user_imei"
 	uuid string = "uu_id"
 	//
+	base string = "36"
+	dot string = "."
 )
 
 var (
@@ -57,16 +62,18 @@ var (
 	data_g string
 	data_u string
 	base_d string
+	reportT string = "1"
+	randE string = "36"
 )
 
 type FP struct {
 	Type         string `json:"type"`
 	UserID       string `json:"user_id"`
 	IdType       string `json:"id_type"`
-	IdentityCode string	`json:"identity_code"`
-	Address      string	`json:"address"`
-	Telephone    string	`json:"telephone"`
-	BackTime     string	`json:"back_time"`
+	IdentityCode string `json:"identity_code"`
+	Address      string `json:"address"`
+	Telephone    string `json:"telephone"`
+	BackTime     string `json:"back_time"`
 	GoWhere      string `json:"go_where"`
 	ContactType  string `json:"contact_type"`
 	Es           string `json:"es"`
@@ -83,10 +90,14 @@ type FP struct {
 
 func arg()  {
 	args := os.Args
-	if len(args) == 4 {
+	if len(args) == 6 {
 		userBl = args[1]
 		userId = args[2]
 		userPa = args[3]
+		reportT = args[4]
+		if args[5] == "1" {
+			randE = randt()
+}
 	} else {
 		getInput()
 	}
@@ -233,7 +244,7 @@ func prePare()  {
 	userTel = gjson.Get(base_d,"telephone").String()
 	userBackTime = gjson.Get(base_d,"back_time").String()
 	//set FP
-	ffp	= FP{"1",userUid,"1",userRealId,userRealAddr,userTel,userBackTime,"None","1","1","2","","0","36","0","0","","","AUTO_REP_19V_GOLANG"}
+	ffp	= FP{reportT,userUid,"1",userRealId,userRealAddr,userTel,userBackTime,"None","1","1","2","","0",randE,"0","0","","","AUTO_REP_19V_GOLANG"}
 }
 
 func postRep()  {
@@ -264,6 +275,12 @@ func postRep()  {
 		pe(err)
 	}
 	fmt.Println(res)
+}
+
+func randt() string{
+        s1 := rand.NewSource(time.Now().UnixNano())
+        r1 := rand.New(s1)
+	return base + dot + strconv.Itoa(r1.Intn(10))
 }
 
 func main()  {
