@@ -149,7 +149,7 @@ func newRequest(method string,durl string,body io.Reader) *http.Request {
 		pe(err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	//req.Header.Add("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
+	req.Header.Add("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36")
 	//req.Header.Add("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
 	//req.Header.Add("Connection","keep-alive")
 	//req.Header.Add("Accept-Language" ,"zh-CN,zh;q=0.9,en;q=0.8")
